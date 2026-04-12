@@ -1,18 +1,8 @@
-# GPU-Optimized Dependencies for Windows with CUDA Support  
-
-This file contains the necessary dependencies for a GPU-optimized setup for the Videotrans project on Windows.
-
-## Dependencies
-- torch==1.9.0+cu102  # CUDA 10.2
-- torchvision==0.10.0+cu102  # CUDA 10.2
-- torchaudio==0.9.0  # For audio support
-- tensorflow-gpu==2.5.0  # GPU-optimized TensorFlow
-- numpy  # Required for numerical operations
-- scipy  # Scientific computing
-
-# Installation
-Run the following command to install the pip packages:
-
-```bash
-pip install -r requirements-win-gpu.txt
-```
+# Valid pip packages for Windows GPU
+tensorflow==2.8.0
+keras==2.8.0
+numpy==1.21.2
+pandas==1.3.3
+pycuda==2021.1.2
+scikit-learn==0.24.2
+opencv-python==4.5.3.20210927
