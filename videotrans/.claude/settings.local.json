@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x:*)",
+      "Bash(python3 -c ':*)",
+      "Bash(PYTHONPATH=apps/videotransdub/src python3 -m pytest apps/videotransdub/tests/ -v --tb=short)",
+      "Bash(git -C /home/quynhlam/Documents/code-project/pyvideotrans-main/ rev-parse --show-toplevel)",
+      "Bash(git -C /home/quynhlam/Documents/code-project/pyvideotrans-main/ remote -v)",
+      "Bash(git -C /home/quynhlam/Documents/code-project/pyvideotrans-main/ log --oneline -5)",
+      "Bash(git -C /home/quynhlam/Documents/code-project/pyvideotrans-main/ branch -a)",
+      "Bash(git -C /home/quynhlam/Documents/code-project/pyvideotrans-main/ status --short)",
+      "Bash(git check-ignore:*)"
+    ]
+  }
+}

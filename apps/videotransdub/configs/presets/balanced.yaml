@@ -1,0 +1,17 @@
+runtime:
+  mode: execute
+
+asr:
+  engine: pyvideotrans-stt
+  recogn_type: 0
+  model: large-v3
+
+translation:
+  engine: pyvideotrans-sts
+  translate_type: 5
+  model: gemini-2.5-flash
+
+tts:
+  engine: pyvideotrans-tts
+  tts_type: 0
+  voice_role: vi-VN-HoaiMyNeural

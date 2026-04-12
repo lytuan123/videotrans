@@ -1,0 +1,9 @@
+{
+  "session_id": "omx-1775974475251-t28czy",
+  "started_at": "2026-04-12T06:14:35.784Z",
+  "cwd": "/home/quynhlam/Documents/code-project/pyvideotrans-main",
+  "pid": 120296,
+  "platform": "linux",
+  "pid_start_ticks": 1067885,
+  "pid_cmdline": "node /home/quynhlam/.npm-global/bin/omx"
+}

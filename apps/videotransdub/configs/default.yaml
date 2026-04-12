@@ -1,0 +1,81 @@
+runtime:
+  mode: execute
+  prefer_uv: true
+  upstream_repo_root: .
+  upstream_cli_path: cli.py
+  ffmpeg_bin: ffmpeg
+  ffprobe_bin: ffprobe
+  python_bin: python3
+  keep_stage_outputs: true
+
+pipeline:
+  video_path: null
+  output_dir: ./apps/videotransdub/runtime/output
+  workspace_dir: ./apps/videotransdub/runtime/workspace
+  source_language: auto
+  target_language: vi
+  resume: true
+  job_name: null
+
+vocal_separation:
+  enabled: false
+  engine: disabled
+  model: htdemucs_ft
+  device: cuda
+
+asr:
+  engine: pyvideotrans-stt
+  model: large-v3
+  recogn_type: 0
+  compute_type: float16
+  batch_size: 16
+  vad_filter: true
+  word_timestamps: true
+  cuda: true
+  mock_text: Hello everyone, welcome to VideoTransDub.
+
+translation:
+  engine: pyvideotrans-sts
+  model: gemini-2.5-flash
+  translate_type: 5
+  batch_size: 25
+  keep_length: true
+  glossary: {}
+  mock_prefix: "[vi] "
+
+tts:
+  engine: pyvideotrans-tts
+  voice_role: vi-VN-HoaiMyNeural
+  tts_type: 0
+  voice_rate: +0%
+  volume: +0%
+  pitch: +0Hz
+  voice_autorate: true
+  mock_voice_label: vi-VN-HoaiMyNeural
+
+audio_sync:
+  max_speedup: 1.4
+  max_slowdown: 0.8
+  method: manifest
+  silence_trim: true
+
+audio_mix:
+  bgm_volume_adjust_db: -3
+  normalize: true
+  target_lufs: -16
+
+video_processing:
+  remove_hardcoded_sub: false
+  inpaint_engine: passthrough
+  burn_subtitle: true
+  subtitle_style:
+    font: Arial
+    size: 22
+    color: white
+    outline: 2
+
+output:
+  format: mp4
+  video_codec: copy
+  audio_codec: aac
+  audio_bitrate: 192k

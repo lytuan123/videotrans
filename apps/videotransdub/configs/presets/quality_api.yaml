@@ -1,0 +1,17 @@
+runtime:
+  mode: execute
+
+asr:
+  engine: pyvideotrans-stt
+  recogn_type: 5
+  model: gpt-4o-transcribe
+
+translation:
+  engine: pyvideotrans-sts
+  translate_type: 3
+  model: gpt-4o-mini
+
+tts:
+  engine: pyvideotrans-tts
+  tts_type: 4
+  voice_role: professional

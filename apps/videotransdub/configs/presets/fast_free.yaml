@@ -1,0 +1,29 @@
+# Fast pipeline using free engines (no API keys needed)
+# Prioritizes speed over quality
+
+runtime:
+  mode: execute
+
+asr:
+  engine: faster-whisper
+  model: tiny
+  compute_type: int8
+  cuda: true
+  vad_filter: true
+  word_timestamps: false
+
+translation:
+  engine: pyvideotrans-sts
+  translate_type: 0
+  model: google-free
+
+tts:
+  engine: edge-tts
+  voice_role: vi-VN-HoaiMyNeural
+  voice_rate: "+0%"
+  volume: "+0%"
+  pitch: "+0Hz"
+
+video_processing:
+  burn_subtitle: true
+  remove_hardcoded_sub: false

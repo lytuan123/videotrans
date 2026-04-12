@@ -1,0 +1,30 @@
+# Alibaba Qwen Free Tier Pipeline
+# Uses DashScope API with free-tier models (no cost for limited usage)
+# Get API key: https://bailian.console.aliyun.com/
+#
+# Free tier models:
+# - qwen-mt-turbo: Dedicated MT model (fast, accurate)
+# - qwen-turbo: General LLM (fallback for prompt-based translation)
+
+runtime:
+  mode: execute
+
+asr:
+  engine: faster-whisper
+  model: small
+  compute_type: int8
+  cuda: true
+
+translation:
+  engine: qwen-mt
+  model: qwen-mt-turbo
+  qwen_api_key: "${QWEN_API_KEY:sk-abd0a732837b414696fc23a8f933aa3b}"
+  batch_size: 20
+
+tts:
+  engine: edge-tts
+  voice_role: vi-VN-HoaiMyNeural
+
+video_processing:
+  burn_subtitle: true
+  remove_hardcoded_sub: false

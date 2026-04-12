@@ -1,0 +1,32 @@
+# Real pipeline using free engines (no API keys needed)
+# - ASR: faster-whisper with small model (fast, free)
+# - Translation: pyvideotrans Google free tier
+# - TTS: Edge-TTS (Microsoft, free, no key)
+
+runtime:
+  mode: execute
+
+asr:
+  engine: faster-whisper
+  model: small
+  compute_type: int8
+  cuda: true
+  vad_filter: true
+  word_timestamps: true
+
+translation:
+  engine: pyvideotrans-sts
+  translate_type: 0
+  model: google-free
+
+tts:
+  engine: edge-tts
+  voice_role: vi-VN-HoaiMyNeural
+  voice_rate: "+0%"
+  volume: "+0%"
+  pitch: "+0Hz"
+
+video_processing:
+  remove_hardcoded_sub: false
+  inpaint_engine: passthrough
+  burn_subtitle: true
