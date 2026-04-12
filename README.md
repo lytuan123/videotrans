@@ -131,8 +131,8 @@ uv add nvidia-cublas-cu12 nvidia-cudnn-cu12
 | Category | Channel/Model | Description |
 | :--- | :--- | :--- |
 | **ASR (Speech Recognition)** | **Faster-Whisper** (Local) | Recommended, fast speed, high accuracy |
-| | WhisperX / Parakeet | Supports timestamp alignment & speaker diarization |
-| | Alibaba Qwen3-ASR / ByteDance Volcano | Online API, excellent for Chinese |
+| **New Production Pipeline** | **VideoTransDub** | [Open colab_videotransdub.ipynb](colab_videotransdub.ipynb) |
+| | | Headless, Stage-based, Checkpoint/Resume (A100/H100 optimized) |
 | **Translation (LLM/MT)** | **DeepSeek** / ChatGPT | Supports context understanding, more natural translation |
 | | MiniMax AI | MiniMax M2.7 LLM, latest flagship model, OpenAI-compatible |
 | | Google / Microsoft | Traditional machine translation, fast speed |

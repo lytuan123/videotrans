@@ -10,8 +10,8 @@ runtime:
 
 pipeline:
   video_path: null
-  output_dir: ./apps/videotransdub/runtime/output
-  workspace_dir: ./apps/videotransdub/runtime/workspace
+  output_dir: ./runtime/output
+  workspace_dir: ./runtime/workspace
   source_language: auto
   target_language: vi
   resume: true

@@ -155,51 +155,89 @@ Neu in ra JSON settings ma khong bao loi -> cai dat thanh cong.
 
 ## 3. Cai dat tren Google Colab
 
-### 3.1. Su dung Notebook (khuyen dung)
+### 3.1. File Notebook o dau?
 
-1. Mo file `notebooks/videotransdub_colab.ipynb` tren Google Colab
-2. Chon Runtime -> **Change runtime type** -> **T4 GPU**
-3. Chay **tat ca cells** (Runtime -> Run all)
-
-Notebook se tu dong:
-- Mount Google Drive
-- Clone repository
-- Cai dat tat ca dependencies (ffmpeg, Python packages, cloudflared)
-- Hien thi system dashboard (GPU/RAM/Disk)
-- Khoi dong Streamlit UI voi Cloudflare tunnel
-- Chay test pipeline E2E
-
-### 3.2. Cai dat thu cong tren Colab
-
-Neu khong muon dung Notebook, chay tung buoc:
-
-```python
-# Cell 1: Mount Drive
-from google.colab import drive
-drive.mount('/content/drive')
-
-# Cell 2: Clone repo
-!git clone https://github.com/pyvideotrans/pyvideotrans.git /content/pyvideotrans
-%cd /content/pyvideotrans
-
-# Cell 3: Cai dat
-!bash apps/videotransdub/install_deps.sh
-
-# Cell 4: Khoi dong UI
-!streamlit run apps/videotransdub/src/videotransdub/app.py \
-  --server.port 8501 --server.headless true &
-
-# Cell 5: Tao tunnel
-!cloudflared tunnel --url http://localhost:8501 &
+File notebook nam tai:
+```
+apps/videotransdub/notebooks/videotransdub_colab.ipynb
 ```
 
-### 3.3. Luu y quan trong cho Colab
+Khi ban push repo len GitHub, file nay cung duoc push theo.
 
-- **Luon chon GPU runtime** (T4 mien phi) de ASR chay nhanh
-- **Khong dung Gradio** -- Streamlit + Cloudflare tunnel on dinh hon cho video dai
-- **Google Drive** tu dong luu checkpoint, nen neu bi ngat ket noi chi can chay lai va pipeline se resume tu stage cuoi
-- Colab session het han sau **90 phut** (mien phi) -- hay dung checkpoint/resume
-- URL Cloudflare thay doi moi session, nhung state duoc luu tren Drive
+### 3.2. Cach mo Notebook tren Colab
+
+**Cach 1: Mo truc tiep tu GitHub (nhanh nhat)**
+1. Vao https://colab.research.google.com
+2. Chon tab **GitHub**
+3. Dan URL repo cua ban, tim file `apps/videotransdub/notebooks/videotransdub_colab.ipynb`
+4. Click mo
+
+**Cach 2: Upload thu cong**
+1. Vao https://colab.research.google.com
+2. Chon **Upload** -> chon file `videotransdub_colab.ipynb` tu may tinh
+
+**Cach 3: Tu Google Drive**
+1. Copy file `.ipynb` vao Google Drive
+2. Click chuot phai -> **Open with** -> **Google Colaboratory**
+
+### 3.3. Chay Notebook (3 buoc)
+
+**Buoc 1**: Chon GPU
+- Menu **Runtime** -> **Change runtime type** -> chon **T4 GPU** -> Save
+
+**Buoc 2**: Sua URL repo (chi lan dau)
+- Mo Cell 1, sua dong `GITHUB_REPO = "..."` thanh URL repo GitHub cua ban
+
+**Buoc 3**: Chay tat ca
+- Menu **Runtime** -> **Run all** (hoac nhan Ctrl+F9)
+- Doi 3-5 phut de cai dat
+- Khi Cell 4 chay xong, se hien **1 nut mau xanh co URL**
+- **Click vao URL do** = mo giao dien web VideoTransDub
+
+### 3.4. Dien gi xay ra khi chay Run All?
+
+```
+Cell 1: Mount Google Drive + clone repo tu GitHub cua ban
+         |
+Cell 2: Cai dat ffmpeg, Whisper, Edge-TTS, Streamlit, tunnel...  (3-5 phut)
+         |
+Cell 3: Hien thi thong tin GPU/RAM/Disk
+         |
+Cell 4: Khoi dong Streamlit server + tao Cloudflare tunnel
+         |
+         +---> HIEN THI URL: https://xxx.trycloudflare.com
+                  |
+                  v
+         BAN CLICK VAO URL DO
+                  |
+                  v
+         MO GIAO DIEN WEB (Dark Mode Dashboard)
+         - Upload video
+         - Chon ngon ngu dich
+         - Nhan "Start Pipeline"
+         - Xem tien do tung buoc
+         - Chinh sua phu de (SRT Editor)
+         - Xem truoc + tai video ket qua
+```
+
+### 3.5. `pip install videotransdub[colab]` co duoc khong?
+
+**Khong** -- vi package nay chua duoc dang len PyPI. No chi cai duoc tu source code:
+
+```python
+# Cai tu source (sau khi da clone repo)
+!pip install -e apps/videotransdub[colab]
+```
+
+Notebook da lam buoc nay tu dong trong Cell 2. Ban khong can chay thu cong.
+
+### 3.6. Luu y quan trong cho Colab
+
+- **Luon chon T4 GPU** (mien phi) de Whisper chay nhanh
+- **URL thay doi moi session** -- nhung video dang xu ly luu tren Google Drive, khong bi mat
+- Colab mien phi **timeout sau 90 phut** -- dung checkpoint/resume de tiep tuc
+- Neu mat ket noi: **chay lai Cell 4** de lay URL moi, pipeline tu dong tiep tuc
+- **Khong can copy code thu cong** -- notebook da chua san tat ca
 
 ---
 
@@ -317,30 +355,43 @@ apps/videotransdub/runtime/workspace/<job-id>/
 
 ## 5. Su dung qua Streamlit UI
 
+### Streamlit UI la gi?
+
+La giao dien web chay tren trinh duyet. Ban upload video, chon cau hinh, nhan nut --
+moi thu deu thao tac bang chuot, khong can go lenh.
+
+Giao dien nay **khong tu co san** khi ban `pip install`. Ban can **khoi dong server** truoc,
+roi mo URL tren trinh duyet.
+
 ### 5.1. Khoi dong tren Local
 
 ```bash
 cd pyvideotrans-main
 
+# Cai dat (neu chua)
+pip install -e "apps/videotransdub[full]"
+
+# Khoi dong server
 streamlit run apps/videotransdub/src/videotransdub/app.py \
   --server.port 8501 \
-  --theme.base dark \
-  --theme.primaryColor "#58a6ff" \
-  --theme.backgroundColor "#0e1117" \
-  --theme.secondaryBackgroundColor "#161b22" \
-  --theme.textColor "#fafafa"
+  --theme.base dark
 ```
 
-Mo trinh duyet: **http://localhost:8501**
-
-### 5.2. Khoi dong tren Colab (voi Cloudflare Tunnel)
-
-Chay Cell 4 trong notebook. Se hien thi URL dang:
+Terminal se in ra:
 ```
-https://xxxx-xxxx-xxxx.trycloudflare.com
+  Local URL: http://localhost:8501
 ```
 
-Mo URL nay tren bat ky thiet bi nao (dien thoai, may tinh khac).
+**Mo trinh duyet, vao http://localhost:8501** -- do la giao dien.
+
+### 5.2. Khoi dong tren Colab
+
+**Ban KHONG can lam buoc nay thu cong.** Notebook Cell 4 da tu dong:
+1. Khoi dong Streamlit server
+2. Tao Cloudflare tunnel
+3. Hien thi URL dang `https://xxxx.trycloudflare.com`
+
+**Chi can click vao URL do** = mo giao dien tren trinh duyet (ke ca tren dien thoai).
 
 ### 5.3. Giao dien UI gom 3 tab
 

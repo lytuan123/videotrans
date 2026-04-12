@@ -49,8 +49,8 @@ class RuntimeSettings(BaseModel):
 
 class PipelineSettings(BaseModel):
     video_path: str | None = None
-    output_dir: str = "./apps/videotransdub/runtime/output"
-    workspace_dir: str = "./apps/videotransdub/runtime/workspace"
+    output_dir: str = "./runtime/output"
+    workspace_dir: str = "./runtime/workspace"
     source_language: str = "auto"
     target_language: str = "vi"
     resume: bool = True

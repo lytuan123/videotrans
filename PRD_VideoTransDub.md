@@ -600,12 +600,13 @@ videotransdub/
 │       ├── srt.py             # SRT parsing/generation
 │       ├── gpu.py             # VRAM monitoring
 │       └── logger.py          # Structured logging
-├── notebooks/
-│   ├── VideoTransDub_Colab.ipynb    # Notebook chính
-│   └── VideoTransDub_Quick.ipynb    # Quick start
+├── colab_videotransdub.ipynb        # Colab notebook (main entry point)
+├── apps/
+│   ├── videotransdub/
+│   │   ├── configs/
+│   │   ├── src/videotransdub/
+│   │   └── tests/
 └── tests/
-    ├── test_pipeline.py
-    └── test_engines/
 ```
 
 ### 5.2 Abstract Engine Interface
