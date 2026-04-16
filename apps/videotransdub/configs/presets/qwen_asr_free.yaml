@@ -1,14 +1,14 @@
-# Alibaba Qwen translation preset
+# Alibaba Qwen ASR + MT preset
 # Requires QWEN_API_KEY in the environment or in a local config override.
 
 runtime:
   mode: execute
 
 asr:
-  engine: faster-whisper
-  model: small
-  compute_type: int8
-  cuda: true
+  engine: qwen3-asr
+  model: qwen3-asr-flash
+  qwen_api_key: "${QWEN_API_KEY:}"
+  cuda: false
 
 translation:
   engine: qwen-mt

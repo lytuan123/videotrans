@@ -39,11 +39,20 @@ class WhisperASREngine(BaseASREngine):
             device,
             compute_type,
         )
-        self._model = WhisperModel(
-            self.settings.asr.model,
-            device=device,
-            compute_type=compute_type,
-        )
+        try:
+            self._model = WhisperModel(
+                self.settings.asr.model,
+                device=device,
+                compute_type=compute_type,
+            )
+        except Exception as exc:
+            message = str(exc)
+            if "LocalEntryNotFoundError" in exc.__class__.__name__ or "cannot find the appropriate snapshot folder" in message:
+                raise RuntimeError(
+                    f"Whisper model '{self.settings.asr.model}' is not cached locally and could not be downloaded. "
+                    "Pre-download the model, restore network access, or switch to a different ASR engine."
+                ) from exc
+            raise
         return self._model
 
     def transcribe(self, input_path: Path, output_dir: Path) -> list[SubtitleSegment]:

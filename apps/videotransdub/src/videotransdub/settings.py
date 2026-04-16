@@ -79,6 +79,7 @@ class ASRSettings(BaseModel):
     vad_filter: bool = True
     word_timestamps: bool = True
     cuda: bool = True
+    qwen_api_key: str = "${QWEN_API_KEY:}"
     mock_text: str = "Hello everyone, welcome to VideoTransDub."
 
 

@@ -42,6 +42,7 @@ video_processing:
             manifest = orchestrator.run()
             final_video = Path(manifest.artifacts["final_video"])
             self.assertTrue(final_video.exists())
+            self.assertEqual(final_video.read_text(encoding="utf-8"), "fake video")
             checkpoint = Path(manifest.workspace_root) / "manifests" / "checkpoint.json"
             self.assertTrue(checkpoint.exists())
 

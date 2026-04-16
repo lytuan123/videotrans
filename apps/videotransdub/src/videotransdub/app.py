@@ -2,7 +2,7 @@
 VideoTransDub - Streamlit Production UI
 Dark Mode Dashboard with full pipeline control.
 
-Run: streamlit run apps/videotransdub/src/videotransdub/app.py --server.port 8501
+Run: videotransdub-ui
 """
 from __future__ import annotations
 

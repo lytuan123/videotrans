@@ -600,7 +600,7 @@ videotransdub/
 │       ├── srt.py             # SRT parsing/generation
 │       ├── gpu.py             # VRAM monitoring
 │       └── logger.py          # Structured logging
-├── colab_videotransdub.ipynb        # Colab notebook (main entry point)
+├── apps/videotransdub/notebooks/videotransdub_colab.ipynb   # Colab notebook (main entry point)
 ├── apps/
 │   ├── videotransdub/
 │   │   ├── configs/

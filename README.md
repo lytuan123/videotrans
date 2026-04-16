@@ -24,6 +24,20 @@
 
 ---
 
+## 🧭 Repository Entry Points
+
+This repository currently contains two execution surfaces:
+
+- **VideoTransDub (recommended for headless / Colab / stage-based workflows)**  
+  Canonical path: [`apps/videotransdub/`](apps/videotransdub)  
+  Colab notebook: [`apps/videotransdub/notebooks/videotransdub_colab.ipynb`](apps/videotransdub/notebooks/videotransdub_colab.ipynb)
+- **pyVideoTrans legacy GUI/CLI**  
+  Entry points: `sp.py` and `cli.py`
+
+If you are new to the repo and want the simpler pipeline, start with **VideoTransDub**.
+
+---
+
 ## ✨ Core Features
 
 - **🎥 Fully Automatic Video Translation**: One-click workflow: Speech Recognition (ASR) -> Subtitle Translation -> Speech Synthesis (TTS) -> Video Synthesis.
@@ -94,12 +108,37 @@ uv sync
 
 ### 4. Launch Software
 
-**Launch GUI**:
+**Recommended: VideoTransDub (new pipeline)**
+```bash
+PYTHONPATH=apps/videotransdub/src \
+python3 -m videotransdub.cli validate \
+  --config apps/videotransdub/configs/default.yaml \
+  --config apps/videotransdub/configs/presets/real_free.yaml
+```
+
+```bash
+PYTHONPATH=apps/videotransdub/src \
+python3 -m videotransdub.cli run \
+  --config apps/videotransdub/configs/default.yaml \
+  --config apps/videotransdub/configs/presets/real_free.yaml \
+  --video-path "./video.mp4" \
+  --target-language vi
+```
+
+After `pip install -e apps/videotransdub`, the UI entrypoint is:
+
+```bash
+videotransdub-ui
+```
+
+Colab: open [`apps/videotransdub/notebooks/videotransdub_colab.ipynb`](apps/videotransdub/notebooks/videotransdub_colab.ipynb)
+
+**Legacy GUI**
 ```bash
 uv run sp.py
 ```
 
-**Use CLI**:
+**Legacy CLI**:
 
 > [View documentation for detailed parameters](https://pyvideotrans.com/cli)
 
@@ -131,7 +170,7 @@ uv add nvidia-cublas-cu12 nvidia-cudnn-cu12
 | Category | Channel/Model | Description |
 | :--- | :--- | :--- |
 | **ASR (Speech Recognition)** | **Faster-Whisper** (Local) | Recommended, fast speed, high accuracy |
-| **New Production Pipeline** | **VideoTransDub** | [Open colab_videotransdub.ipynb](colab_videotransdub.ipynb) |
+| **New Production Pipeline** | **VideoTransDub** | [Open apps/videotransdub/notebooks/videotransdub_colab.ipynb](apps/videotransdub/notebooks/videotransdub_colab.ipynb) |
 | | | Headless, Stage-based, Checkpoint/Resume (A100/H100 optimized) |
 | **Translation (LLM/MT)** | **DeepSeek** / ChatGPT | Supports context understanding, more natural translation |
 | | MiniMax AI | MiniMax M2.7 LLM, latest flagship model, OpenAI-compatible |

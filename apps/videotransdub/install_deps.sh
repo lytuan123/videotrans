@@ -17,17 +17,38 @@ ok()   { echo -e "${GREEN}[  OK ]${NC} $*"; }
 warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
 fail() { echo -e "${RED}[FAIL]${NC} $*"; exit 1; }
 
+WARNINGS=()
+
+record_warning() {
+    WARNINGS+=("$1")
+    warn "$1"
+}
+
+try_run() {
+    local description="$1"
+    shift
+    if "$@"; then
+        ok "$description"
+    else
+        record_warning "$description failed"
+    fi
+    return 0
+}
+
 # ---- 1. System packages (ffmpeg, ffprobe) ----------------------------------
 log "Installing system packages..."
 if command -v apt-get &>/dev/null; then
-    apt-get update -qq
-    apt-get install -y -qq ffmpeg libsndfile1 > /dev/null 2>&1
-    ok "apt-get packages installed"
+    if command -v sudo &>/dev/null; then
+        try_run "apt-get update" sudo apt-get update -qq
+        try_run "apt-get install ffmpeg libsndfile1" sudo apt-get install -y -qq ffmpeg libsndfile1
+    else
+        try_run "apt-get update" apt-get update -qq
+        try_run "apt-get install ffmpeg libsndfile1" apt-get install -y -qq ffmpeg libsndfile1
+    fi
 elif command -v yum &>/dev/null; then
-    yum install -y -q ffmpeg libsndfile > /dev/null 2>&1
-    ok "yum packages installed"
+    try_run "yum install ffmpeg libsndfile" yum install -y -q ffmpeg libsndfile
 else
-    warn "No apt-get or yum found. Ensure ffmpeg is installed manually."
+    record_warning "No apt-get or yum found. Ensure ffmpeg is installed manually."
 fi
 
 # Verify ffmpeg/ffprobe
@@ -35,12 +56,13 @@ FFMPEG_VERSION=$(ffmpeg -version 2>/dev/null | head -1 || true)
 FFPROBE_VERSION=$(ffprobe -version 2>/dev/null | head -1 || true)
 
 if [ -z "$FFMPEG_VERSION" ]; then
-    fail "ffmpeg not found after install! Please install manually."
+    record_warning "ffmpeg not found after setup. Real video rendering will be unavailable until installed."
+else
+    ok "ffmpeg: $FFMPEG_VERSION"
 fi
-ok "ffmpeg: $FFMPEG_VERSION"
 
 if [ -z "$FFPROBE_VERSION" ]; then
-    warn "ffprobe not found (some features may be limited)"
+    record_warning "ffprobe not found (some features may be limited)"
 else
     ok "ffprobe: $FFPROBE_VERSION"
 fi
@@ -48,44 +70,53 @@ fi
 # ---- 2. Python dependencies ------------------------------------------------
 log "Installing Python dependencies..."
 
-pip install --quiet --upgrade pip
+try_run "pip upgrade" pip install --quiet --upgrade pip
 
 # Core
-pip install --quiet \
+try_run "Python core dependencies" pip install --quiet \
     "pydantic>=2,<3" \
     "PyYAML>=6,<7"
 
 # ASR - faster-whisper
-pip install --quiet \
+try_run "ASR dependencies" pip install --quiet \
     "faster-whisper>=1.0.0" \
     "ctranslate2>=4.0.0"
 
 # TTS - Edge TTS
-pip install --quiet "edge-tts>=6.1.0"
+try_run "Edge-TTS dependency" pip install --quiet "edge-tts>=6.1.0"
 
 # Video processing - OpenCV
-pip install --quiet "opencv-python-headless>=4.8.0"
+try_run "OpenCV dependency" pip install --quiet "opencv-python-headless>=4.8.0"
 
 # Translation - Alibaba Qwen/DashScope
-pip install --quiet "dashscope>=1.20.0"
+try_run "DashScope dependency" pip install --quiet "dashscope>=1.20.0"
 
 # UI - Streamlit
-pip install --quiet \
+try_run "Streamlit UI dependency" pip install --quiet \
     "streamlit>=1.30.0"
 
 # Colab utilities
-pip install --quiet "ipywidgets>=8.0.0"
+try_run "ipywidgets dependency" pip install --quiet "ipywidgets>=8.0.0"
 
-ok "Python packages installed"
+if [ "${#WARNINGS[@]}" -eq 0 ]; then
+    ok "Python packages installed"
+fi
 
 # ---- 3. Install videotransdub package in dev mode --------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/pyproject.toml" ]; then
     log "Installing videotransdub package..."
-    pip install --quiet -e "$SCRIPT_DIR"
-    ok "videotransdub installed"
+    if ! pip install --quiet -e "$SCRIPT_DIR"; then
+        if pip install --quiet --no-build-isolation --no-deps -e "$SCRIPT_DIR"; then
+            ok "videotransdub installed (offline fallback)"
+        else
+            record_warning "videotransdub package install failed"
+        fi
+    else
+        ok "videotransdub installed"
+    fi
 else
-    warn "pyproject.toml not found at $SCRIPT_DIR. Skipping package install."
+    record_warning "pyproject.toml not found at $SCRIPT_DIR. Skipping package install."
 fi
 
 # ---- 4. Create runtime directories ----------------------------------------
@@ -100,8 +131,13 @@ ok "Runtime dirs ready: $RUNTIME_DIR"
 log "Installing Cloudflare tunnel (cloudflared)..."
 if ! command -v cloudflared &>/dev/null; then
     if command -v apt-get &>/dev/null; then
-        wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -O /tmp/cloudflared.deb
-        dpkg -i /tmp/cloudflared.deb > /dev/null 2>&1 || apt-get install -f -y -qq > /dev/null 2>&1
+        if command -v sudo &>/dev/null; then
+            wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -O /tmp/cloudflared.deb || true
+            sudo dpkg -i /tmp/cloudflared.deb > /dev/null 2>&1 || sudo apt-get install -f -y -qq > /dev/null 2>&1 || true
+        else
+            wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -O /tmp/cloudflared.deb || true
+            dpkg -i /tmp/cloudflared.deb > /dev/null 2>&1 || apt-get install -f -y -qq > /dev/null 2>&1 || true
+        fi
         rm -f /tmp/cloudflared.deb
     fi
 fi
@@ -109,7 +145,7 @@ fi
 if command -v cloudflared &>/dev/null; then
     ok "cloudflared: $(cloudflared --version 2>&1 | head -1)"
 else
-    warn "cloudflared not installed. Streamlit will only be accessible via Colab proxy."
+    record_warning "cloudflared not installed. Streamlit will only be accessible via Colab proxy."
 fi
 
 # ---- 6. GPU check ----------------------------------------------------------
@@ -127,8 +163,16 @@ echo -e "${GREEN}============================================${NC}"
 echo -e "${GREEN}  VideoTransDub Setup Complete!${NC}"
 echo -e "${GREEN}============================================${NC}"
 echo ""
+if [ "${#WARNINGS[@]}" -gt 0 ]; then
+    echo "  Warnings:"
+    for item in "${WARNINGS[@]}"; do
+        echo "    - $item"
+    done
+    echo ""
+fi
 echo "  Next steps:"
-echo "    1. Upload a video to runtime/uploads/"
-echo "    2. Run Streamlit UI: streamlit run apps/videotransdub/src/videotransdub/app.py"
-echo "    3. Or use CLI: python -m videotransdub.cli run --config ..."
+echo "    1. Preflight: videotransdub preflight --config apps/videotransdub/configs/default.yaml --config apps/videotransdub/configs/presets/fast_free.yaml --video-path /path/to/video.mp4 --check-ui"
+echo "    2. Smoke test: videotransdub smoke --config apps/videotransdub/configs/default.yaml --config apps/videotransdub/configs/presets/fast_free.yaml --video-path /path/to/video.mp4 --target-language vi --clip-seconds 15"
+echo "    3. Run Streamlit UI: videotransdub-ui"
+echo "    4. Or use CLI: videotransdub run --config ..."
 echo ""

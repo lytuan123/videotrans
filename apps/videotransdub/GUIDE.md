@@ -255,6 +255,29 @@ python3 -m videotransdub.cli run \
   --source-language auto
 ```
 
+### 4.1.1. Preflight truoc khi dot thoi gian Colab
+
+```bash
+videotransdub preflight \
+  --config apps/videotransdub/configs/default.yaml \
+  --config apps/videotransdub/configs/presets/fast_free.yaml \
+  --video-path /content/drive/MyDrive/video.mp4 \
+  --check-ui
+```
+
+Neu `ready=false`, sua moi truong truoc khi chay pipeline that.
+
+### 4.1.2. Smoke test 15 giay
+
+```bash
+videotransdub smoke \
+  --config apps/videotransdub/configs/default.yaml \
+  --config apps/videotransdub/configs/presets/fast_free.yaml \
+  --video-path /content/drive/MyDrive/video.mp4 \
+  --target-language vi \
+  --clip-seconds 15
+```
+
 ### 4.2. Vi du cu the
 
 **Dich video tieng Anh sang tieng Viet (mien phi, khong can API key):**
@@ -279,7 +302,7 @@ python3 -m videotransdub.cli run \
 
 **Dich bang Qwen-MT (Alibaba free tier):**
 ```bash
-export QWEN_API_KEY="sk-abd0a732837b414696fc23a8f933aa3b"
+export QWEN_API_KEY="sk-your-key-here"
 
 PYTHONPATH=apps/videotransdub/src \
 python3 -m videotransdub.cli run \
@@ -372,9 +395,7 @@ cd pyvideotrans-main
 pip install -e "apps/videotransdub[full]"
 
 # Khoi dong server
-streamlit run apps/videotransdub/src/videotransdub/app.py \
-  --server.port 8501 \
-  --theme.base dark
+videotransdub-ui
 ```
 
 Terminal se in ra:
@@ -455,13 +476,14 @@ Terminal se in ra:
 | `fast_free` | faster-whisper | tiny | Google Free | Edge-TTS | Nhanh | Trung binh | Khong |
 | `real_free` | faster-whisper | small | Google Free | Edge-TTS | Vua | Kha | Khong |
 | `qwen_free` | faster-whisper | small | Qwen-MT-Turbo | Edge-TTS | Vua | Tot | Co (DashScope) |
+| `qwen_asr_free` | Qwen3-ASR | qwen3-asr-flash | Qwen-MT-Turbo | Edge-TTS | Vua | Tot | Co (DashScope) |
 | `balanced` | faster-whisper | large-v3 | Gemini 2.5 Flash | Edge-TTS | Cham | Rat tot | Co (Google) |
 | `quality_api` | GPT-4o Transcribe | -- | GPT-4o Mini | Premium | Cham | Xuat sac | Co (OpenAI) |
 
 ### Khuyen nghi
 
 - **Lan dau thu nghiem**: Dung `mock` de kiem tra pipeline chay khong loi
-- **Su dung hang ngay (mien phi)**: Dung `real_free` hoac `qwen_free`
+- **Su dung hang ngay (mien phi)**: Dung `real_free`, `qwen_free`, hoac `qwen_asr_free`
 - **Can chat luong cao**: Dung `balanced` (can Gemini API key)
 - **Video quan trong**: Dung `quality_api` (can OpenAI API key)
 
@@ -735,6 +757,7 @@ apps/videotransdub/
 |       |-- fast_free.yaml        # Nhanh + mien phi
 |       |-- real_free.yaml        # Chat luong kha + mien phi
 |       |-- qwen_free.yaml        # Qwen-MT + mien phi
+|       |-- qwen_asr_free.yaml    # Qwen3-ASR + Qwen-MT
 |       |-- balanced.yaml         # Can bot + can API key
 |       |-- quality_api.yaml      # Chat luong cao nhat
 |
@@ -820,7 +843,7 @@ python3 -m videotransdub.cli run \
   --video-path video.mp4 --target-language vi
 
 # Dich bang Qwen
-export QWEN_API_KEY="sk-abd0a732837b414696fc23a8f933aa3b"
+export QWEN_API_KEY="sk-your-key-here"
 PYTHONPATH=apps/videotransdub/src \
 python3 -m videotransdub.cli run \
   --config apps/videotransdub/configs/default.yaml \
@@ -828,7 +851,7 @@ python3 -m videotransdub.cli run \
   --video-path video.mp4 --target-language vi
 
 # Khoi dong UI
-streamlit run apps/videotransdub/src/videotransdub/app.py --theme.base dark
+videotransdub-ui
 
 # Kiem tra config
 PYTHONPATH=apps/videotransdub/src \
@@ -843,7 +866,7 @@ python3 -m videotransdub.cli validate \
 !bash apps/videotransdub/install_deps.sh
 
 # Chay pipeline
-!PYTHONPATH=apps/videotransdub/src python3 -m videotransdub.cli run \
+!videotransdub run \
   --config apps/videotransdub/configs/default.yaml \
   --config apps/videotransdub/configs/presets/real_free.yaml \
   --video-path /content/drive/MyDrive/video.mp4 \

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 from ..registry import create_inpaint_engine
@@ -41,7 +42,8 @@ class VideoStage(BaseStage):
             ], cwd=None, log_path=ctx.log_path)
             payload["render_mode"] = "ffmpeg-burn"
         else:
-            rendered_video.write_text("render skipped; see manifest", encoding="utf-8")
-            payload["render_mode"] = "manifest-only"
+            rendered_video.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(cleaned, rendered_video)
+            payload["render_mode"] = "copy-clean-video"
         write_json(manifest_path, payload)
         return {"video_clean": str(cleaned), "video_subbed": str(rendered_video), "video_render_manifest": str(manifest_path)}

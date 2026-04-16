@@ -18,6 +18,9 @@ def create_asr_engine(settings: AppSettings, workspace_log: Path):
     if settings.asr.engine == "faster-whisper":
         from .engines.asr.whisper_engine import WhisperASREngine
         return WhisperASREngine(settings)
+    if settings.asr.engine == "qwen3-asr":
+        from .engines.asr.qwen_engine import Qwen3ASREngine
+        return Qwen3ASREngine(settings, workspace_log)
     if settings.asr.engine == "pyvideotrans-stt":
         return PyVideoTransASREngine(settings, workspace_log)
     raise ValueError(f"Unsupported ASR engine: {settings.asr.engine}")
