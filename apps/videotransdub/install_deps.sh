@@ -19,6 +19,15 @@ fail() { echo -e "${RED}[FAIL]${NC} $*"; exit 1; }
 
 WARNINGS=()
 
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+if ! command -v "$PYTHON_BIN" &>/dev/null; then
+    PYTHON_BIN="${PYTHON_BIN:-python}"
+fi
+if ! command -v "$PYTHON_BIN" &>/dev/null; then
+    fail "python interpreter not found"
+fi
+PIP_CMD=("$PYTHON_BIN" -m pip)
+
 record_warning() {
     WARNINGS+=("$1")
     warn "$1"
@@ -70,33 +79,33 @@ fi
 # ---- 2. Python dependencies ------------------------------------------------
 log "Installing Python dependencies..."
 
-try_run "pip upgrade" pip install --quiet --upgrade pip
+try_run "pip upgrade" "${PIP_CMD[@]}" install --quiet --upgrade pip
 
 # Core
-try_run "Python core dependencies" pip install --quiet \
+try_run "Python core dependencies" "${PIP_CMD[@]}" install --quiet \
     "pydantic>=2,<3" \
     "PyYAML>=6,<7"
 
 # ASR - faster-whisper
-try_run "ASR dependencies" pip install --quiet \
+try_run "ASR dependencies" "${PIP_CMD[@]}" install --quiet \
     "faster-whisper>=1.0.0" \
     "ctranslate2>=4.0.0"
 
 # TTS - Edge TTS
-try_run "Edge-TTS dependency" pip install --quiet "edge-tts>=6.1.0"
+try_run "Edge-TTS dependency" "${PIP_CMD[@]}" install --quiet "edge-tts>=6.1.0"
 
 # Video processing - OpenCV
-try_run "OpenCV dependency" pip install --quiet "opencv-python-headless>=4.8.0"
+try_run "OpenCV dependency" "${PIP_CMD[@]}" install --quiet "opencv-python-headless>=4.8.0"
 
 # Translation - Alibaba Qwen/DashScope
-try_run "DashScope dependency" pip install --quiet "dashscope>=1.20.0"
+try_run "DashScope dependency" "${PIP_CMD[@]}" install --quiet "dashscope>=1.20.0"
 
 # UI - Streamlit
-try_run "Streamlit UI dependency" pip install --quiet \
+try_run "Streamlit UI dependency" "${PIP_CMD[@]}" install --quiet \
     "streamlit>=1.30.0"
 
 # Colab utilities
-try_run "ipywidgets dependency" pip install --quiet "ipywidgets>=8.0.0"
+try_run "ipywidgets dependency" "${PIP_CMD[@]}" install --quiet "ipywidgets>=8.0.0"
 
 if [ "${#WARNINGS[@]}" -eq 0 ]; then
     ok "Python packages installed"
@@ -106,17 +115,22 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 if [ -f "$SCRIPT_DIR/pyproject.toml" ]; then
     log "Installing videotransdub package..."
-    if ! pip install --quiet -e "$SCRIPT_DIR"; then
-        if pip install --quiet --no-build-isolation --no-deps -e "$SCRIPT_DIR"; then
+    if ! "${PIP_CMD[@]}" install --quiet -e "$SCRIPT_DIR"; then
+        if "${PIP_CMD[@]}" install --quiet --no-build-isolation --no-deps -e "$SCRIPT_DIR"; then
             ok "videotransdub installed (offline fallback)"
         else
-            record_warning "videotransdub package install failed"
+            fail "videotransdub package install failed"
         fi
     else
         ok "videotransdub installed"
     fi
+    if "$PYTHON_BIN" -c "import videotransdub, sys; print(videotransdub.__file__)"; then
+        ok "videotransdub import verified in active Python environment"
+    else
+        fail "videotransdub import verification failed after install"
+    fi
 else
-    record_warning "pyproject.toml not found at $SCRIPT_DIR. Skipping package install."
+    fail "pyproject.toml not found at $SCRIPT_DIR. Cannot install videotransdub."
 fi
 
 # ---- 4. Create runtime directories ----------------------------------------
