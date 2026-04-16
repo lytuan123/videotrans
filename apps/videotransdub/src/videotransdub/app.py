@@ -205,6 +205,8 @@ if "pipeline_started_at" not in st.session_state:
     st.session_state.pipeline_started_at = None
 if "pipeline_last_event" not in st.session_state:
     st.session_state.pipeline_last_event = "Idle"
+if "active_config_paths" not in st.session_state:
+    st.session_state.active_config_paths = []
 
 
 # ---------------------------------------------------------------------------
@@ -349,9 +351,17 @@ def get_system_info() -> dict:
     return info
 
 
+def build_selected_config_paths(preset_key: str) -> list[str]:
+    config_paths = [str(CONFIGS_DIR / "default.yaml")]
+    preset_file = PRESETS_DIR / f"{preset_key}.yaml"
+    if preset_file.exists():
+        config_paths.append(str(preset_file))
+    return config_paths
+
+
 def run_pipeline_thread(
     video_path: str,
-    preset_key: str,
+    config_paths: list[str],
     target_lang: str,
     source_lang: str,
     pause_for_srt: bool,
@@ -362,11 +372,6 @@ def run_pipeline_thread(
         ensure_package_import_path()
         from videotransdub.orchestrator import VideoTransDubOrchestrator
         from videotransdub.settings import load_settings
-
-        config_paths = [str(CONFIGS_DIR / "default.yaml")]
-        preset_file = PRESETS_DIR / f"{preset_key}.yaml"
-        if preset_file.exists():
-            config_paths.append(str(preset_file))
 
         overrides = {
             "pipeline": {
@@ -383,6 +388,9 @@ def run_pipeline_thread(
             settings,
             pause_after_translate=pause_for_srt,
         )
+        if orch.ctx.manifest is not None:
+            orch.ctx.manifest.config_paths = list(config_paths)
+            orch.ctx.persist_manifest()
         event_queue.put({"type": "workspace", "workspace": str(orch.workspace.root)})
         event_queue.put({"type": "status", "message": f"Pipeline started in {orch.workspace.root.name}"})
 
@@ -399,7 +407,7 @@ def run_pipeline_thread(
         event_queue.put({"type": "finished"})
 
 
-def run_post_translate_thread(workspace_root: str, event_queue: queue.Queue) -> None:
+def run_post_translate_thread(workspace_root: str, fallback_config_paths: list[str], event_queue: queue.Queue) -> None:
     """Resume pipeline from TTS after SRT edit."""
     try:
         ensure_package_import_path()
@@ -412,7 +420,7 @@ def run_post_translate_thread(workspace_root: str, event_queue: queue.Queue) -> 
             raise FileNotFoundError("No job manifest found to resume")
 
         manifest_data = json.loads(manifest_file.read_text(encoding="utf-8"))
-        config_paths = [str(CONFIGS_DIR / "default.yaml")]
+        config_paths = manifest_data.get("config_paths") or fallback_config_paths or [str(CONFIGS_DIR / "default.yaml")]
         # Reload with same settings
         settings = load_settings(*config_paths, overrides={
             "pipeline": {
@@ -585,6 +593,7 @@ with tab_pipeline:
                 if not video_path:
                     st.error("Please upload a video or enter a video path first.")
                 else:
+                    st.session_state.active_config_paths = build_selected_config_paths(preset_key)
                     st.session_state.pipeline_running = True
                     st.session_state.pipeline_done = False
                     st.session_state.pipeline_error = None
@@ -598,7 +607,7 @@ with tab_pipeline:
                         target=run_pipeline_thread,
                         args=(
                             video_path,
-                            preset_key,
+                            list(st.session_state.active_config_paths),
                             target_lang,
                             source_lang,
                             pause_for_srt,
@@ -631,7 +640,11 @@ with tab_pipeline:
                 st.session_state.pipeline_events = queue.Queue()
                 thread = threading.Thread(
                     target=run_post_translate_thread,
-                    args=(str(st.session_state.current_workspace), st.session_state.pipeline_events),
+                    args=(
+                        str(st.session_state.current_workspace),
+                        list(st.session_state.active_config_paths),
+                        st.session_state.pipeline_events,
+                    ),
                     daemon=True,
                 )
                 thread.start()

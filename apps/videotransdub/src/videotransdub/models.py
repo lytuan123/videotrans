@@ -45,6 +45,7 @@ class StageResult(BaseModel):
 class JobManifest(BaseModel):
     job_id: str
     config_path: str | None = None
+    config_paths: list[str] = Field(default_factory=list)
     source_video: str
     workspace_root: str
     artifacts: dict[str, str] = Field(default_factory=dict)

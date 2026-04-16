@@ -9,7 +9,34 @@ import yaml
 from pydantic import BaseModel, Field, model_validator
 
 
-_ENV_PATTERN = re.compile(r"\$\{([^}:]+)(?::([^}]+))?\}")
+_ENV_PATTERN = re.compile(r"\$\{([^}:]+)(?::([^}]*))?\}")
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[4]
+
+
+def _read_colab_secret(key: str) -> str | None:
+    try:
+        from google.colab import userdata  # type: ignore
+    except Exception:
+        return None
+
+    try:
+        value = userdata.get(key)
+    except Exception:
+        return None
+    return value or None
+
+
+def _lookup_env(key: str, default: str = "") -> str:
+    value = os.environ.get(key)
+    if value:
+        return value
+    secret = _read_colab_secret(key)
+    if secret:
+        return secret
+    return default
 
 
 def _expand_env(value: Any) -> Any:
@@ -17,7 +44,7 @@ def _expand_env(value: Any) -> Any:
         def _replace(match: re.Match[str]) -> str:
             key = match.group(1)
             default = match.group(2) or ""
-            return os.environ.get(key, default)
+            return _lookup_env(key, default)
         return _ENV_PATTERN.sub(_replace, value)
     if isinstance(value, list):
         return [_expand_env(item) for item in value]
@@ -39,12 +66,30 @@ def deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]
 class RuntimeSettings(BaseModel):
     mode: Literal["execute", "mock", "plan"] = "execute"
     prefer_uv: bool = True
-    upstream_repo_root: str = "."
-    upstream_cli_path: str = "cli.py"
+    upstream_repo_root: str = Field(default_factory=lambda: str(_repo_root()))
+    upstream_cli_path: str = Field(default_factory=lambda: str(_repo_root() / "cli.py"))
     ffmpeg_bin: str = "ffmpeg"
     ffprobe_bin: str = "ffprobe"
-    python_bin: str = "python3"
+    python_bin: str = "python"
     keep_stage_outputs: bool = True
+
+    @model_validator(mode="after")
+    def normalize_paths(self) -> "RuntimeSettings":
+        repo_root = Path(self.upstream_repo_root).expanduser()
+        if not repo_root.is_absolute():
+            repo_root = (_repo_root() / repo_root).resolve()
+        else:
+            repo_root = repo_root.resolve()
+
+        cli_path = Path(self.upstream_cli_path).expanduser()
+        if not cli_path.is_absolute():
+            cli_path = (repo_root / cli_path).resolve()
+        else:
+            cli_path = cli_path.resolve()
+
+        self.upstream_repo_root = str(repo_root)
+        self.upstream_cli_path = str(cli_path)
+        return self
 
 
 class PipelineSettings(BaseModel):

@@ -31,7 +31,7 @@ class PyVideoTransTranslator(BaseTranslator):
     def _build_command(self, input_srt: Path) -> list[str]:
         cli_path = self.settings.runtime.upstream_cli_path
         if self.settings.runtime.prefer_uv:
-            command = ["uv", "run", cli_path]
+            command = ["uv", "run", self.settings.runtime.python_bin, cli_path]
         else:
             command = [self.settings.runtime.python_bin, cli_path]
         command += [

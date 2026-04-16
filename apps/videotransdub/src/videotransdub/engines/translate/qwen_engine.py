@@ -119,7 +119,10 @@ class QwenTranslator(BaseTranslator):
         )
 
         if response.code or not response.output:
-            raise RuntimeError(f"Qwen MT error: {getattr(response, 'message', 'unknown')}")
+            raise RuntimeError(
+                f"Qwen MT error [{getattr(response, 'code', 'unknown')}]: "
+                f"{getattr(response, 'message', 'unknown')}"
+            )
 
         return response.output.choices[0].message.content
 
@@ -143,7 +146,10 @@ class QwenTranslator(BaseTranslator):
         )
 
         if response.code or not response.output:
-            raise RuntimeError(f"Qwen LLM error: {getattr(response, 'message', 'unknown')}")
+            raise RuntimeError(
+                f"Qwen LLM error [{getattr(response, 'code', 'unknown')}]: "
+                f"{getattr(response, 'message', 'unknown')}"
+            )
 
         content = response.output.choices[0].message.content
         # Try to extract from TRANSLATE_TEXT tags if present
