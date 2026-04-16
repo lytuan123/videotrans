@@ -1,0 +1,39 @@
+# Voice-over preset using local Whisper ASR, Qwen translation, and narration-style mix.
+
+runtime:
+  mode: execute
+
+voice_over:
+  enabled: true
+  max_chunk_chars: 260
+  max_gap_seconds: 1.5
+  min_chunk_seconds: 2.5
+  ducking: true
+  original_audio_gain_db: -16
+  narration_gain_db: 4
+
+asr:
+  engine: faster-whisper
+  model: small
+  compute_type: int8
+  cuda: false
+
+translation:
+  engine: qwen-mt
+  model: qwen2.5-7b-instruct-1m
+  qwen_api_key: "${QWEN_API_KEY:}"
+  qwen_base_url: "${QWEN_BASE_URL:https://dashscope-intl.aliyuncs.com/api/v1}"
+  batch_size: 18
+
+tts:
+  engine: edge-tts
+  voice_role: vi-VN-HoaiMyNeural
+  voice_rate: "-5%"
+  volume: "+0%"
+  pitch: "+0Hz"
+  voice_autorate: false
+
+video_processing:
+  burn_subtitle: false
+  remove_hardcoded_sub: false
+

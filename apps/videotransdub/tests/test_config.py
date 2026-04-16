@@ -52,6 +52,17 @@ class ConfigTests(unittest.TestCase):
             self.assertTrue(Path(settings.runtime.upstream_cli_path).is_absolute())
             self.assertTrue(Path(settings.runtime.upstream_cli_path).exists())
 
+    def test_qwen_base_url_can_be_expanded_from_env(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            config = Path(tmp) / "config.yaml"
+            config.write_text(
+                "pipeline:\n  target_language: vi\ntranslation:\n  qwen_base_url: ${QWEN_BASE_URL:https://dashscope.aliyuncs.com/api/v1}\n",
+                encoding="utf-8",
+            )
+            with mock.patch.dict(os.environ, {"QWEN_BASE_URL": "https://dashscope-intl.aliyuncs.com/api/v1"}, clear=True):
+                settings = load_settings(str(config))
+            self.assertEqual(settings.translation.qwen_base_url, "https://dashscope-intl.aliyuncs.com/api/v1")
+
 
 if __name__ == "__main__":
     unittest.main()

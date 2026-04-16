@@ -1,0 +1,17 @@
+runtime:
+  mode: mock
+
+voice_over:
+  enabled: true
+
+asr:
+  engine: mock
+
+translation:
+  engine: mock
+
+tts:
+  engine: mock
+
+video_processing:
+  burn_subtitle: false

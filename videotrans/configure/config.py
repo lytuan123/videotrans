@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import datetime
 import json
+import locale
 import logging
 import os
 import re
@@ -12,7 +13,21 @@ from queue import Queue
 from dataclasses import dataclass, field
 from typing import Dict, Any, List
 
-from PySide6.QtCore import QLocale
+try:
+    from PySide6.QtCore import QLocale
+except ImportError:
+    class _FallbackQLocale:
+        @staticmethod
+        def system():
+            class _SystemLocale:
+                @staticmethod
+                def name():
+                    lang, _encoding = locale.getdefaultlocale()
+                    return lang or "en_US"
+
+            return _SystemLocale()
+
+    QLocale = _FallbackQLocale
 from videotrans.util.contants import (
     no_proxy, DEFAULT_GEMINI_MODEL, OPENAITTS_ROLES, ChatTTS_VOICE, Qwentts_Models,
     Whisper_Models, Zijiehuoshan_Model, Zhipuai_Model, Localllm_Model, Azure_Model,

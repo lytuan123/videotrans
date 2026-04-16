@@ -125,6 +125,7 @@ class ASRSettings(BaseModel):
     word_timestamps: bool = True
     cuda: bool = True
     qwen_api_key: str = "${QWEN_API_KEY:}"
+    qwen_base_url: str = "${QWEN_BASE_URL:}"
     mock_text: str = "Hello everyone, welcome to VideoTransDub."
 
 
@@ -137,6 +138,7 @@ class TranslationSettings(BaseModel):
     glossary: dict[str, str] = Field(default_factory=dict)
     mock_prefix: str = "[vi] "
     qwen_api_key: str = "${QWEN_API_KEY:}"
+    qwen_base_url: str = "${QWEN_BASE_URL:}"
 
 
 class TTSSettings(BaseModel):
@@ -161,6 +163,16 @@ class AudioMixSettings(BaseModel):
     bgm_volume_adjust_db: int = -3
     normalize: bool = True
     target_lufs: int = -16
+
+
+class VoiceOverSettings(BaseModel):
+    enabled: bool = False
+    max_chunk_chars: int = 260
+    max_gap_seconds: float = 1.2
+    min_chunk_seconds: float = 2.0
+    ducking: bool = True
+    original_audio_gain_db: int = -14
+    narration_gain_db: int = 3
 
 
 class SubtitleStyle(BaseModel):
@@ -193,6 +205,7 @@ class AppSettings(BaseModel):
     tts: TTSSettings = Field(default_factory=TTSSettings)
     audio_sync: AudioSyncSettings = Field(default_factory=AudioSyncSettings)
     audio_mix: AudioMixSettings = Field(default_factory=AudioMixSettings)
+    voice_over: VoiceOverSettings = Field(default_factory=VoiceOverSettings)
     video_processing: VideoProcessingSettings = Field(default_factory=VideoProcessingSettings)
     output: OutputSettings = Field(default_factory=OutputSettings)
 

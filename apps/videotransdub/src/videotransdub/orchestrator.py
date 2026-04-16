@@ -25,6 +25,7 @@ class PipelineContext:
     artifacts: dict[str, str] = field(default_factory=dict)
     segments: list[SubtitleSegment] = field(default_factory=list)
     translated_segments: list[SubtitleSegment] = field(default_factory=list)
+    voice_over_segments: list[SubtitleSegment] = field(default_factory=list)
     manifest: JobManifest | None = None
     on_progress: ProgressCallback | None = None
 

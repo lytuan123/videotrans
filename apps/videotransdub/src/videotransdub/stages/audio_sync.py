@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ..utils.srt import read_srt
 from ..utils.commands import write_json
 from .base import BaseStage
 
@@ -12,7 +13,14 @@ class AudioSyncStage(BaseStage):
     def run(self, ctx):
         stage_dir = ctx.workspace.stage_dir("stage3_5")
         sync_plan = []
-        for segment in ctx.translated_segments:
+        if ctx.settings.voice_over.enabled:
+            if not ctx.voice_over_segments and ctx.artifacts.get("voice_over_script_srt"):
+                ctx.voice_over_segments = read_srt(Path(ctx.artifacts["voice_over_script_srt"]))
+            source_segments = ctx.voice_over_segments
+        else:
+            source_segments = ctx.translated_segments
+
+        for segment in source_segments:
             ratio = 1.0
             sync_plan.append({
                 "segment_id": segment.id,

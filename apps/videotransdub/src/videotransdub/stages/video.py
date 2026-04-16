@@ -8,6 +8,14 @@ from ..utils.commands import run_command, which, write_json
 from .base import BaseStage
 
 
+def _escape_subtitles_filter_path(path: Path) -> str:
+    normalized = path.resolve().as_posix()
+    normalized = normalized.replace("\\", "/")
+    normalized = normalized.replace(":", r"\:")
+    normalized = normalized.replace("'", r"\'")
+    return normalized
+
+
 class VideoStage(BaseStage):
     name = "stage5_video"
 
@@ -29,8 +37,9 @@ class VideoStage(BaseStage):
         ffmpeg = which(ctx.settings.runtime.ffmpeg_bin)
         if ffmpeg and ctx.settings.runtime.mode == "execute" and ctx.settings.video_processing.burn_subtitle:
             style = ctx.settings.video_processing.subtitle_style
+            subtitle_filter_path = _escape_subtitles_filter_path(subtitle_input)
             filter_expr = (
-                f"subtitles={subtitle_input}:force_style='FontName={style.font},FontSize={style.size},"
+                f"subtitles='{subtitle_filter_path}':force_style='FontName={style.font},FontSize={style.size},"
                 f"PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,Outline={style.outline}'"
             )
             run_command([

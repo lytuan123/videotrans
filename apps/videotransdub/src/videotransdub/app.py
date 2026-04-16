@@ -168,9 +168,11 @@ PRESETS = {
     "real_free": "Real Free (Whisper small + Edge-TTS)",
     "fast_free": "Fast Free (Whisper tiny + Edge-TTS)",
     "qwen_free": "Qwen Free (Whisper + Qwen-MT + Edge-TTS)",
+    "qwen_voice_over": "Qwen Voice-Over (Narration + Ducking)",
     "balanced": "Balanced (Whisper large + Gemini)",
     "quality_api": "Quality API (GPT-4o + Premium TTS)",
     "mock": "Mock (Smoke Test)",
+    "mock_voice_over": "Mock Voice-Over (Smoke Test)",
 }
 
 STAGE_NAMES = [

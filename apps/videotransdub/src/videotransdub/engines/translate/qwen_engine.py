@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from typing import Any
 
@@ -48,6 +49,12 @@ class QwenTranslator(BaseTranslator):
         self.model = settings.translation.model
         self.batch_size = settings.translation.batch_size
         self.target_lang = settings.pipeline.target_language
+        self.base_url = (
+            settings.translation.qwen_base_url
+            or os.environ.get("QWEN_BASE_URL")
+            or os.environ.get("DASHSCOPE_BASE_URL")
+            or "https://dashscope.aliyuncs.com/api/v1"
+        )
 
         if not self.api_key:
             raise ValueError(
@@ -62,11 +69,12 @@ class QwenTranslator(BaseTranslator):
             raise RuntimeError(
                 "dashscope is not installed. Run: pip install dashscope"
             ) from exc
+        dashscope.base_http_api_url = self.base_url
 
         target_name = self.LANG_MAP.get(self.target_lang, self.target_lang)
         logger.info(
-            "Qwen translate: model=%s, target=%s, %d segments",
-            self.model, target_name, len(segments),
+            "Qwen translate: model=%s, target=%s, base_url=%s, %d segments",
+            self.model, target_name, self.base_url, len(segments),
         )
 
         translated: list[SubtitleSegment] = []
@@ -89,6 +97,7 @@ class QwenTranslator(BaseTranslator):
 
     def _translate_batch(self, dashscope: Any, text: str, target_name: str) -> str:
         """Translate a batch of text lines using Qwen API."""
+        dashscope.base_http_api_url = self.base_url
         model = self.model
         if model == "qwen-turbo":
             model = "qwen-mt-turbo"

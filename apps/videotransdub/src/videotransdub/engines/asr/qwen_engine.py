@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from pathlib import Path
 
 from ...models import SubtitleSegment
@@ -17,6 +18,12 @@ class Qwen3ASREngine(BaseASREngine):
     def __init__(self, settings: AppSettings, workspace_log: Path) -> None:
         self.settings = settings
         self.workspace_log = workspace_log
+        self.base_url = (
+            settings.asr.qwen_base_url
+            or os.environ.get("QWEN_BASE_URL")
+            or os.environ.get("DASHSCOPE_BASE_URL")
+            or "https://dashscope.aliyuncs.com/api/v1"
+        )
 
     def transcribe(self, input_path: Path, output_dir: Path) -> list[SubtitleSegment]:
         wav_path = output_dir / "input_16k.wav"
@@ -66,6 +73,7 @@ class Qwen3ASREngine(BaseASREngine):
 
     def _transcribe_with_legacy_qwen(self, wav_path: Path, output_dir: Path) -> list[dict]:
         try:
+            import dashscope
             from videotrans.configure import config as legacy_config
             from videotrans.recognition._qwen3asr import Qwen3ASRRecogn
         except ImportError as exc:
@@ -80,6 +88,7 @@ class Qwen3ASREngine(BaseASREngine):
                 "Set asr.qwen_api_key in config or QWEN_API_KEY in the environment."
             )
 
+        dashscope.base_http_api_url = self.base_url
         legacy_config.init_run()
         legacy_config.params["qwenmt_key"] = api_key
         legacy_config.params["qwenmt_asr_model"] = self.settings.asr.model
@@ -88,7 +97,7 @@ class Qwen3ASREngine(BaseASREngine):
         if not language or language == "auto":
             language = "auto"
 
-        logger.info("Qwen3-ASR via legacy adapter: model=%s", self.settings.asr.model)
+        logger.info("Qwen3-ASR via legacy adapter: model=%s, base_url=%s", self.settings.asr.model, self.base_url)
         recognizer = Qwen3ASRRecogn(
             detect_language=language,
             audio_file=str(wav_path),

@@ -8,12 +8,14 @@ asr:
   engine: qwen3-asr
   model: qwen3-asr-flash
   qwen_api_key: "${QWEN_API_KEY:}"
+  qwen_base_url: "${QWEN_BASE_URL:https://dashscope-intl.aliyuncs.com/api/v1}"
   cuda: false
 
 translation:
   engine: qwen-mt
-  model: qwen-mt-turbo
+  model: qwen2.5-7b-instruct-1m
   qwen_api_key: "${QWEN_API_KEY:}"
+  qwen_base_url: "${QWEN_BASE_URL:https://dashscope-intl.aliyuncs.com/api/v1}"
   batch_size: 20
 
 tts:

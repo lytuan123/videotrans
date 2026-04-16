@@ -5,6 +5,7 @@ from pathlib import Path
 from ..registry import create_translate_engine
 from ..utils.commands import write_json
 from ..utils.srt import read_srt, write_srt
+from ..utils.voice_over import build_voice_over_segments
 from .base import BaseStage
 
 
@@ -27,4 +28,23 @@ class TranslateStage(BaseStage):
         srt_path = stage_dir / "transcript_translated.srt"
         write_json(json_path, {"segments": [segment.model_dump(mode="json") for segment in translated]})
         write_srt(srt_path, translated, translated=True)
-        return {"transcript_translated_json": str(json_path), "transcript_translated_srt": str(srt_path)}
+        outputs = {
+            "transcript_translated_json": str(json_path),
+            "transcript_translated_srt": str(srt_path),
+        }
+
+        if ctx.settings.voice_over.enabled:
+            ctx.voice_over_segments = build_voice_over_segments(
+                translated,
+                max_chunk_chars=ctx.settings.voice_over.max_chunk_chars,
+                max_gap_seconds=ctx.settings.voice_over.max_gap_seconds,
+                min_chunk_seconds=ctx.settings.voice_over.min_chunk_seconds,
+            )
+            voice_json_path = stage_dir / "voice_over_script.json"
+            voice_srt_path = stage_dir / "voice_over_script.srt"
+            write_json(voice_json_path, {"segments": [segment.model_dump(mode="json") for segment in ctx.voice_over_segments]})
+            write_srt(voice_srt_path, ctx.voice_over_segments)
+            outputs["voice_over_script_json"] = str(voice_json_path)
+            outputs["voice_over_script_srt"] = str(voice_srt_path)
+
+        return outputs
