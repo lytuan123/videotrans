@@ -6,6 +6,7 @@
 *.ui
 *.bak
 *.bat
+!run_videotransdub_ui.bat
 *.aac
 *.pyi
 *.mp4
@@ -76,4 +77,3 @@ colab_pyvideotrans_original.ipynb
 .Trashes
 ehthumbs.db
 Thumbs.db
-
