@@ -8,7 +8,9 @@ from __future__ import annotations
 
 import json
 import os
+import queue
 import shutil
+import sys
 import threading
 import time
 from pathlib import Path
@@ -26,88 +28,121 @@ st.set_page_config(
 )
 
 # ---------------------------------------------------------------------------
-# Dark Mode CSS
+# Light UI CSS
 # ---------------------------------------------------------------------------
 st.markdown("""
 <style>
-    /* Dark theme overrides */
-    .stApp { background-color: #0e1117; color: #fafafa; }
-    .stSidebar > div:first-child { background-color: #161b22; }
+    .stApp {
+        background:
+            radial-gradient(circle at top right, rgba(29, 78, 216, 0.10), transparent 26%),
+            linear-gradient(180deg, #f7f9fc 0%, #eef3f8 100%);
+        color: #1f2328;
+    }
+    .stSidebar > div:first-child {
+        background: rgba(255, 255, 255, 0.92);
+        border-right: 1px solid #d8dee4;
+    }
 
-    /* Cards */
     .metric-card {
-        background: #161b22;
-        border: 1px solid #30363d;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid #d8dee4;
         border-radius: 12px;
         padding: 1.2rem;
         margin: 0.5rem 0;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
     }
-    .metric-card h3 { color: #58a6ff; margin: 0 0 0.5rem 0; font-size: 0.9rem; }
-    .metric-card .value { color: #f0f6fc; font-size: 1.8rem; font-weight: 700; }
+    .metric-card h3 { color: #1f6feb; margin: 0 0 0.5rem 0; font-size: 0.9rem; }
+    .metric-card .value { color: #0f172a; font-size: 1.6rem; font-weight: 700; }
 
-    /* Stage progress */
     .stage-item {
         display: flex;
         align-items: center;
         padding: 0.6rem 1rem;
         margin: 0.3rem 0;
         border-radius: 8px;
-        background: #161b22;
-        border-left: 4px solid #30363d;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid #d8dee4;
+        border-left: 4px solid #94a3b8;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
     }
     .stage-item.completed { border-left-color: #3fb950; }
-    .stage-item.running { border-left-color: #d29922; background: #1c1e23; }
-    .stage-item.failed { border-left-color: #f85149; }
-    .stage-item.pending { border-left-color: #484f58; }
-    .stage-label { flex: 1; color: #c9d1d9; font-weight: 500; }
+    .stage-item.running { border-left-color: #d97706; background: #fff7ed; }
+    .stage-item.failed { border-left-color: #f85149; background: #fef2f2; }
+    .stage-item.pending { border-left-color: #94a3b8; background: #f8fafc; }
+    .stage-label { flex: 1; color: #0f172a; font-weight: 600; }
     .stage-status { font-size: 0.85rem; padding: 0.2rem 0.6rem; border-radius: 12px; }
-    .stage-status.completed { background: #0d3220; color: #3fb950; }
-    .stage-status.running { background: #3d2e00; color: #d29922; }
-    .stage-status.failed { background: #3d1418; color: #f85149; }
-    .stage-status.pending { background: #21262d; color: #484f58; }
+    .stage-status.completed { background: #dcfce7; color: #166534; }
+    .stage-status.running { background: #ffedd5; color: #9a3412; }
+    .stage-status.failed { background: #fee2e2; color: #b91c1c; }
+    .stage-status.pending { background: #e2e8f0; color: #475569; }
 
-    /* SRT Editor */
     .srt-editor textarea {
         font-family: 'JetBrains Mono', 'Fira Code', monospace !important;
         font-size: 13px !important;
-        background: #0d1117 !important;
-        color: #c9d1d9 !important;
-        border: 1px solid #30363d !important;
+        background: #ffffff !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
         border-radius: 8px !important;
     }
 
-    /* Header */
     .app-header {
-        background: linear-gradient(135deg, #161b22 0%, #0d1117 100%);
-        border: 1px solid #30363d;
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(239, 246, 255, 0.96) 100%);
+        border: 1px solid #d8dee4;
         border-radius: 16px;
         padding: 1.5rem 2rem;
         margin-bottom: 1.5rem;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
     }
     .app-header h1 {
-        color: #f0f6fc;
+        color: #0f172a;
         font-size: 1.8rem;
         margin: 0;
-        background: linear-gradient(90deg, #58a6ff, #bc8cff);
+        background: linear-gradient(90deg, #1d4ed8, #0f766e);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
     }
-    .app-header p { color: #8b949e; margin: 0.3rem 0 0 0; }
+    .app-header p { color: #475569; margin: 0.3rem 0 0 0; }
 
-    /* Buttons */
     .stButton > button {
-        background: linear-gradient(135deg, #238636, #2ea043) !important;
+        background: linear-gradient(135deg, #1d4ed8, #2563eb) !important;
         color: white !important;
         border: none !important;
         border-radius: 8px !important;
         padding: 0.5rem 1.5rem !important;
         font-weight: 600 !important;
+        box-shadow: 0 10px 20px rgba(37, 99, 235, 0.18) !important;
     }
     .stButton > button:hover {
-        background: linear-gradient(135deg, #2ea043, #3fb950) !important;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
     }
 
-    /* Hide default streamlit elements */
+    [data-baseweb="tab-list"] {
+        gap: 0.5rem;
+        background: rgba(226, 232, 240, 0.92);
+        padding: 0.4rem;
+        border-radius: 999px;
+        border: 1px solid #d8dee4;
+        margin-bottom: 1rem;
+    }
+    button[data-baseweb="tab"] {
+        background: #ffffff !important;
+        color: #334155 !important;
+        border-radius: 999px !important;
+        border: 1px solid #d0d7de !important;
+        padding: 0.45rem 0.9rem !important;
+        font-weight: 600 !important;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background: #1d4ed8 !important;
+        color: #ffffff !important;
+        border-color: #1d4ed8 !important;
+    }
+
+    .stCodeBlock, pre {
+        background: #0f172a !important;
+        border-radius: 12px !important;
+    }
+
     #MainMenu { visibility: hidden; }
     footer { visibility: hidden; }
     header { visibility: hidden; }
@@ -118,6 +153,7 @@ st.markdown("""
 # Constants & Paths
 # ---------------------------------------------------------------------------
 APP_DIR = Path(__file__).resolve().parent.parent.parent  # apps/videotransdub/
+SRC_DIR = APP_DIR / "src"
 CONFIGS_DIR = APP_DIR / "configs"
 PRESETS_DIR = CONFIGS_DIR / "presets"
 RUNTIME_DIR = APP_DIR / "runtime"
@@ -163,11 +199,73 @@ if "waiting_for_srt_confirm" not in st.session_state:
     st.session_state.waiting_for_srt_confirm = False
 if "pipeline_thread" not in st.session_state:
     st.session_state.pipeline_thread = None
+if "pipeline_events" not in st.session_state:
+    st.session_state.pipeline_events = queue.Queue()
+if "pipeline_started_at" not in st.session_state:
+    st.session_state.pipeline_started_at = None
+if "pipeline_last_event" not in st.session_state:
+    st.session_state.pipeline_last_event = "Idle"
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+def ensure_package_import_path() -> None:
+    src_path = str(SRC_DIR)
+    if src_path not in sys.path:
+        sys.path.insert(0, src_path)
+
+
+def poll_pipeline_events() -> None:
+    event_queue = st.session_state.pipeline_events
+    while True:
+        try:
+            event = event_queue.get_nowait()
+        except queue.Empty:
+            break
+
+        event_type = event.get("type")
+        if event_type == "workspace":
+            st.session_state.current_workspace = event.get("workspace")
+            st.session_state.pipeline_last_event = "Workspace prepared"
+        elif event_type == "status":
+            st.session_state.pipeline_last_event = event.get("message", "Running")
+        elif event_type == "paused":
+            st.session_state.pipeline_running = False
+            st.session_state.waiting_for_srt_confirm = True
+            st.session_state.pipeline_last_event = event.get("message", "Paused for subtitle review")
+        elif event_type == "done":
+            st.session_state.pipeline_done = True
+            st.session_state.pipeline_last_event = event.get("message", "Pipeline completed")
+        elif event_type == "error":
+            st.session_state.pipeline_error = event.get("message", "Unknown pipeline error")
+            st.session_state.pipeline_last_event = st.session_state.pipeline_error
+        elif event_type == "finished":
+            st.session_state.pipeline_running = False
+            st.session_state.pipeline_thread = None
+
+
+def sync_pipeline_thread_state() -> None:
+    thread = st.session_state.pipeline_thread
+    if (
+        st.session_state.pipeline_running
+        and thread is not None
+        and not thread.is_alive()
+        and not st.session_state.pipeline_done
+        and not st.session_state.pipeline_error
+        and not st.session_state.waiting_for_srt_confirm
+    ):
+        st.session_state.pipeline_running = False
+        st.session_state.pipeline_thread = None
+        st.session_state.pipeline_error = (
+            "Pipeline stopped before publishing status. Open the log panel below to inspect startup errors."
+        )
+
+
+poll_pipeline_events()
+sync_pipeline_thread_state()
+
+
 def get_gdrive_path() -> Path | None:
     """Return Google Drive mount path if available."""
     gdrive = Path("/content/drive/MyDrive/VideoTransDub")
@@ -257,11 +355,13 @@ def run_pipeline_thread(
     target_lang: str,
     source_lang: str,
     pause_for_srt: bool,
-):
+    event_queue: queue.Queue,
+) -> None:
     """Run the pipeline in a background thread."""
     try:
-        from .settings import load_settings
-        from .orchestrator import VideoTransDubOrchestrator
+        ensure_package_import_path()
+        from videotransdub.orchestrator import VideoTransDubOrchestrator
+        from videotransdub.settings import load_settings
 
         config_paths = [str(CONFIGS_DIR / "default.yaml")]
         preset_file = PRESETS_DIR / f"{preset_key}.yaml"
@@ -283,28 +383,30 @@ def run_pipeline_thread(
             settings,
             pause_after_translate=pause_for_srt,
         )
-        st.session_state.current_workspace = orch.workspace.root
+        event_queue.put({"type": "workspace", "workspace": str(orch.workspace.root)})
+        event_queue.put({"type": "status", "message": f"Pipeline started in {orch.workspace.root.name}"})
 
         if pause_for_srt:
             orch.run_until_translate()
-            st.session_state.waiting_for_srt_confirm = True
+            event_queue.put({"type": "paused", "message": "Translation finished. Waiting for SRT review."})
         else:
             orch.run()
+            event_queue.put({"type": "done", "message": "Pipeline completed successfully."})
 
-        st.session_state.pipeline_done = True
     except Exception as exc:
-        st.session_state.pipeline_error = str(exc)
+        event_queue.put({"type": "error", "message": str(exc)})
     finally:
-        st.session_state.pipeline_running = False
+        event_queue.put({"type": "finished"})
 
 
-def run_post_translate_thread():
+def run_post_translate_thread(workspace_root: str, event_queue: queue.Queue) -> None:
     """Resume pipeline from TTS after SRT edit."""
     try:
-        from .settings import load_settings
-        from .orchestrator import VideoTransDubOrchestrator
+        ensure_package_import_path()
+        from videotransdub.orchestrator import VideoTransDubOrchestrator
+        from videotransdub.settings import load_settings
 
-        workspace = st.session_state.current_workspace
+        workspace = Path(workspace_root)
         manifest_file = workspace / "manifests" / "job.json"
         if not manifest_file.exists():
             raise FileNotFoundError("No job manifest found to resume")
@@ -323,12 +425,22 @@ def run_post_translate_thread():
 
         orch = VideoTransDubOrchestrator(settings)
         orch.run_from_tts()
-        st.session_state.pipeline_done = True
+        event_queue.put({"type": "workspace", "workspace": str(workspace)})
+        event_queue.put({"type": "done", "message": "Pipeline completed successfully."})
     except Exception as exc:
-        st.session_state.pipeline_error = str(exc)
+        event_queue.put({"type": "error", "message": str(exc)})
     finally:
-        st.session_state.pipeline_running = False
-        st.session_state.waiting_for_srt_confirm = False
+        event_queue.put({"type": "finished"})
+
+
+def render_live_log(workspace: Path, title: str = "Live Pipeline Log", expanded: bool = False) -> None:
+    log_file = workspace / "logs" / "pipeline.log"
+    with st.expander(title, expanded=expanded):
+        if log_file.exists():
+            log_text = log_file.read_text(encoding="utf-8")
+            st.code(log_text[-5000:] if len(log_text) > 5000 else log_text, language="text")
+        else:
+            st.caption("Log file will appear after the worker writes its first entry.")
 
 
 # ---------------------------------------------------------------------------
@@ -477,10 +589,21 @@ with tab_pipeline:
                     st.session_state.pipeline_done = False
                     st.session_state.pipeline_error = None
                     st.session_state.waiting_for_srt_confirm = False
+                    st.session_state.current_workspace = None
+                    st.session_state.pipeline_started_at = time.time()
+                    st.session_state.pipeline_last_event = "Starting pipeline worker..."
+                    st.session_state.pipeline_events = queue.Queue()
 
                     thread = threading.Thread(
                         target=run_pipeline_thread,
-                        args=(video_path, preset_key, target_lang, source_lang, pause_for_srt),
+                        args=(
+                            video_path,
+                            preset_key,
+                            target_lang,
+                            source_lang,
+                            pause_for_srt,
+                            st.session_state.pipeline_events,
+                        ),
                         daemon=True,
                     )
                     thread.start()
@@ -488,16 +611,31 @@ with tab_pipeline:
                     st.rerun()
 
         if st.session_state.pipeline_running:
-            st.info("Pipeline is running... Status updates automatically from checkpoint.")
-            st.button("Refresh Status", on_click=lambda: None)
+            thread = st.session_state.pipeline_thread
+            alive = thread.is_alive() if thread else False
+            st.info(
+                f"Pipeline is running. Worker thread: {'alive' if alive else 'stopped'}. "
+                f"Last event: {st.session_state.pipeline_last_event}"
+            )
+            if st.session_state.pipeline_started_at:
+                elapsed = int(time.time() - st.session_state.pipeline_started_at)
+                st.caption(f"Elapsed: {elapsed}s")
+            st.button("Refresh Status", on_click=lambda: None, use_container_width=True)
 
         if st.session_state.waiting_for_srt_confirm:
             st.warning("Pipeline paused. Review subtitles in the SRT Editor tab, then click Continue.")
             if st.button("Continue Pipeline (after SRT review)", type="primary", use_container_width=True):
                 st.session_state.pipeline_running = True
                 st.session_state.waiting_for_srt_confirm = False
-                thread = threading.Thread(target=run_post_translate_thread, daemon=True)
+                st.session_state.pipeline_last_event = "Resuming from TTS..."
+                st.session_state.pipeline_events = queue.Queue()
+                thread = threading.Thread(
+                    target=run_post_translate_thread,
+                    args=(str(st.session_state.current_workspace), st.session_state.pipeline_events),
+                    daemon=True,
+                )
                 thread.start()
+                st.session_state.pipeline_thread = thread
                 st.rerun()
 
         if st.session_state.pipeline_error:
@@ -518,8 +656,12 @@ with tab_pipeline:
             # Overall progress bar
             completed_count = sum(1 for s in stages_data.values() if s.get("status") == "completed")
             total_stages = len(STAGE_NAMES)
-            overall_pct = completed_count / total_stages if total_stages else 0
-            st.progress(overall_pct, text=f"Overall: {completed_count}/{total_stages} stages")
+            file_progress = float(status.get("progress") or 0.0)
+            overall_pct = max(file_progress, completed_count / total_stages if total_stages else 0)
+            st.progress(min(overall_pct, 1.0), text=f"Overall: {completed_count}/{total_stages} stages")
+            st.caption(f"Workspace: `{workspace}`")
+            if status.get("updated_at"):
+                st.caption(f"Last status update: {status['updated_at']}")
 
             # Per-stage status
             for stage_key, stage_label in STAGE_NAMES:
@@ -537,6 +679,17 @@ with tab_pipeline:
             # Live status message
             if status.get("message"):
                 st.caption(f"Status: {status['message']}")
+            render_live_log(Path(workspace), expanded=st.session_state.pipeline_running)
+        elif st.session_state.pipeline_running:
+            st.info("Pipeline worker is starting. Workspace and log will appear here after initialization.")
+
+            for _, stage_label in STAGE_NAMES:
+                st.markdown(f"""
+                <div class="stage-item pending">
+                    <span class="stage-label">{stage_label}</span>
+                    <span class="stage-status pending">WAITING</span>
+                </div>
+                """, unsafe_allow_html=True)
         else:
             st.markdown("*No active pipeline. Upload a video and start the pipeline.*")
 
@@ -595,8 +748,9 @@ with tab_srt_editor:
 
                 # Also update JSON
                 try:
-                    from .utils.srt import read_srt
-                    from .utils.commands import write_json
+                    ensure_package_import_path()
+                    from videotransdub.utils.commands import write_json
+                    from videotransdub.utils.srt import read_srt
                     segments = read_srt(srt_path)
                     json_path = Path(workspace) / "stage2" / "transcript_translated.json"
                     write_json(json_path, {"segments": [s.model_dump(mode="json") for s in segments]})
@@ -663,14 +817,7 @@ with tab_output:
                         for f in sorted(files):
                             st.text(f"  {f.name} ({f.stat().st_size:,} bytes)")
 
-        # Pipeline log
-        with st.expander("Pipeline Log"):
-            log_file = Path(workspace) / "logs" / "pipeline.log"
-            if log_file.exists():
-                log_text = log_file.read_text(encoding="utf-8")
-                st.code(log_text[-5000:] if len(log_text) > 5000 else log_text, language="text")
-            else:
-                st.info("No log file yet.")
+        render_live_log(Path(workspace), title="Pipeline Log", expanded=False)
     else:
         st.info("No pipeline output yet. Start a pipeline to see results here.")
 

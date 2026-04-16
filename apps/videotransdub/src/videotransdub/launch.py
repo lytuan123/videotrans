@@ -33,12 +33,24 @@ def build_streamlit_command(port: int = 8501) -> list[str]:
     ]
 
 
+def build_streamlit_env(base_env: dict[str, str] | None = None) -> dict[str, str]:
+    env = dict(base_env or os.environ)
+    src_path = str(app_root() / "src")
+    existing = env.get("PYTHONPATH", "")
+    if existing:
+        env["PYTHONPATH"] = os.pathsep.join([src_path, existing])
+    else:
+        env["PYTHONPATH"] = src_path
+    return env
+
+
 def start_streamlit(port: int = 8501) -> subprocess.Popen[bytes]:
     return subprocess.Popen(
         build_streamlit_command(port),
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         cwd=str(app_root()),
+        env=build_streamlit_env(),
     )
 
 
@@ -66,7 +78,7 @@ def main() -> int:
     parser.add_argument("--port", type=int, default=int(os.environ.get("VIDEOTRANSDUB_PORT", "8501")))
     args = parser.parse_args()
     command = build_streamlit_command(args.port)
-    os.execvp(command[0], command)
+    os.execvpe(command[0], command, build_streamlit_env())
 
 
 if __name__ == "__main__":
