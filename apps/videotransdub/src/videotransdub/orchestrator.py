@@ -109,6 +109,10 @@ class VideoTransDubOrchestrator:
         """Run stages 3-6 (TTS -> sync -> mix -> video -> finalize)."""
         return self._run_stages(start_from="stage3_tts")
 
+    def run_until_audio_mix(self) -> JobManifest:
+        """Run stages 0-4 only (preprocess -> ASR -> translate -> TTS -> sync -> mix)."""
+        return self._run_stages(stop_after="stage4_mix")
+
     def _run_stages(
         self,
         stop_after: str | None = None,

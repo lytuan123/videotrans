@@ -163,13 +163,13 @@ def collect_preflight(settings: AppSettings, *, check_ui: bool = False) -> dict[
     }
 
 
-def run_smoke(settings: AppSettings, *, clip_seconds: int = 15, work_root: str | None = None) -> dict[str, Any]:
+def _prepare_clip(settings: AppSettings, *, clip_seconds: int, work_root: str | None, prefix: str) -> tuple[Path, Path, str]:
     input_video = Path(settings.pipeline.video_path or "").expanduser().resolve()
     if not input_video.exists():
         raise FileNotFoundError(f"Input video not found: {input_video}")
 
     ffmpeg = which(settings.runtime.ffmpeg_bin)
-    root = Path(work_root).expanduser().resolve() if work_root else Path(tempfile.mkdtemp(prefix="videotransdub-smoke-"))
+    root = Path(work_root).expanduser().resolve() if work_root else Path(tempfile.mkdtemp(prefix=prefix))
     root.mkdir(parents=True, exist_ok=True)
     clip_path = root / f"{input_video.stem}-smoke{input_video.suffix}"
     clip_mode = "ffmpeg-copy"
@@ -224,6 +224,16 @@ def run_smoke(settings: AppSettings, *, clip_seconds: int = 15, work_root: str |
                 last_error = exc
         if last_error is not None:
             raise RuntimeError(f"Could not create smoke clip: {last_error}") from last_error
+    return root, clip_path, clip_mode
+
+
+def run_smoke(settings: AppSettings, *, clip_seconds: int = 15, work_root: str | None = None) -> dict[str, Any]:
+    root, clip_path, clip_mode = _prepare_clip(
+        settings,
+        clip_seconds=clip_seconds,
+        work_root=work_root,
+        prefix="videotransdub-smoke-",
+    )
 
     overrides = {
         "pipeline": {
@@ -244,5 +254,43 @@ def run_smoke(settings: AppSettings, *, clip_seconds: int = 15, work_root: str |
         "clip_mode": clip_mode,
         "workspace_root": manifest.workspace_root,
         "final_video": manifest.artifacts.get("final_video"),
+        "manifest": manifest.model_dump(mode="json"),
+    }
+
+
+def run_voice_preview(settings: AppSettings, *, clip_seconds: int = 15, work_root: str | None = None) -> dict[str, Any]:
+    root, clip_path, clip_mode = _prepare_clip(
+        settings,
+        clip_seconds=clip_seconds,
+        work_root=work_root,
+        prefix="videotransdub-voice-preview-",
+    )
+
+    overrides = {
+        "pipeline": {
+            "video_path": str(clip_path),
+            "resume": False,
+            "job_name": "voice-preview",
+            "workspace_dir": str(root / "workspace"),
+            "output_dir": str(root / "output"),
+        }
+    }
+    payload = settings.model_dump(mode="json")
+    payload.setdefault("voice_over", {})
+    payload["voice_over"]["enabled"] = True
+    preview_settings = AppSettings.model_validate(deep_merge(payload, overrides))
+    orchestrator = VideoTransDubOrchestrator(preview_settings)
+    manifest = orchestrator.run_until_audio_mix()
+    return {
+        "clip_path": str(clip_path),
+        "clip_seconds": clip_seconds,
+        "clip_mode": clip_mode,
+        "workspace_root": manifest.workspace_root,
+        "voice_over_script_srt": manifest.artifacts.get("voice_over_script_srt"),
+        "voice_over_script_json": manifest.artifacts.get("voice_over_script_json"),
+        "narration_audio": manifest.artifacts.get("tts_audio"),
+        "narration_manifest": manifest.artifacts.get("tts_manifest"),
+        "mixed_audio": manifest.artifacts.get("mixed_audio"),
+        "mixed_audio_manifest": manifest.artifacts.get("mixed_audio_manifest"),
         "manifest": manifest.model_dump(mode="json"),
     }

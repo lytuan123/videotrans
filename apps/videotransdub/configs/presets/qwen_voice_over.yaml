@@ -34,6 +34,5 @@ tts:
   voice_autorate: false
 
 video_processing:
-  burn_subtitle: false
+  burn_subtitle: true
   remove_hardcoded_sub: false
-

@@ -4,7 +4,7 @@ import argparse
 import json
 import sys
 
-from .diagnostics import build_pipeline_overrides, collect_preflight, run_smoke
+from .diagnostics import build_pipeline_overrides, collect_preflight, run_smoke, run_voice_preview
 from .orchestrator import VideoTransDubOrchestrator
 from .settings import load_settings
 
@@ -36,6 +36,14 @@ def build_parser() -> argparse.ArgumentParser:
     smoke.add_argument("--source-language", help="Override source language")
     smoke.add_argument("--clip-seconds", type=int, default=15, help="How many seconds to keep in the smoke clip")
     smoke.add_argument("--work-root", help="Optional output root for smoke artifacts")
+
+    voice_preview = sub.add_parser("voice-preview", help="Create a short clip and render voice-over audio artifacts only")
+    voice_preview.add_argument("--config", action="append", required=True)
+    voice_preview.add_argument("--video-path", required=True, help="Input video path")
+    voice_preview.add_argument("--target-language", help="Override target language")
+    voice_preview.add_argument("--source-language", help="Override source language")
+    voice_preview.add_argument("--clip-seconds", type=int, default=15, help="How many seconds to keep in the preview clip")
+    voice_preview.add_argument("--work-root", help="Optional output root for preview artifacts")
     return parser
 
 
@@ -64,6 +72,12 @@ def main() -> int:
         if args.command == "smoke":
             settings = load_settings(*args.config, overrides=overrides)
             report = run_smoke(settings, clip_seconds=args.clip_seconds, work_root=args.work_root)
+            print(json.dumps(report, ensure_ascii=False, indent=2))
+            return 0
+
+        if args.command == "voice-preview":
+            settings = load_settings(*args.config, overrides=overrides)
+            report = run_voice_preview(settings, clip_seconds=args.clip_seconds, work_root=args.work_root)
             print(json.dumps(report, ensure_ascii=False, indent=2))
             return 0
 

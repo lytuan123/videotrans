@@ -7,6 +7,31 @@ from ..utils.commands import run_command, which, write_json
 from .base import BaseStage
 
 
+def build_finalize_command(
+    ffmpeg_bin: str,
+    video_input: Path,
+    mixed_audio: Path,
+    final_video: Path,
+    *,
+    video_codec: str,
+    audio_codec: str,
+    audio_bitrate: str,
+) -> list[str]:
+    return [
+        ffmpeg_bin,
+        "-y",
+        "-i", str(video_input),
+        "-i", str(mixed_audio),
+        "-map", "0:v:0",
+        "-map", "1:a:0",
+        "-c:v", video_codec,
+        "-c:a", audio_codec,
+        "-b:a", audio_bitrate,
+        "-shortest",
+        str(final_video),
+    ]
+
+
 class FinalizeStage(BaseStage):
     name = "stage6_finalize"
 
@@ -25,16 +50,19 @@ class FinalizeStage(BaseStage):
         }
         ffmpeg = which(ctx.settings.runtime.ffmpeg_bin)
         if ffmpeg and ctx.settings.runtime.mode == "execute" and mixed_audio and Path(mixed_audio).exists() and video_input.exists() and video_input.suffix != ".txt":
-            run_command([
-                ctx.settings.runtime.ffmpeg_bin,
-                "-y",
-                "-i", str(video_input),
-                "-i", str(mixed_audio),
-                "-c:v", ctx.settings.output.video_codec,
-                "-c:a", ctx.settings.output.audio_codec,
-                "-b:a", ctx.settings.output.audio_bitrate,
-                str(final_video),
-            ], cwd=None, log_path=ctx.log_path)
+            run_command(
+                build_finalize_command(
+                    ctx.settings.runtime.ffmpeg_bin,
+                    video_input,
+                    Path(mixed_audio),
+                    final_video,
+                    video_codec=ctx.settings.output.video_codec,
+                    audio_codec=ctx.settings.output.audio_codec,
+                    audio_bitrate=ctx.settings.output.audio_bitrate,
+                ),
+                cwd=None,
+                log_path=ctx.log_path,
+            )
             payload["finalize_mode"] = "ffmpeg-mux"
         else:
             if video_input.exists():
